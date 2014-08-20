@@ -53,8 +53,6 @@
                         change:(NSDictionary *)change
                        context:(void *)context {
     
-    NSLog(@"DEBUG: keyPath = %@", keyPath);
-    
     if ([keyPath isEqualToString:self.keyPath]) {
         self.count++;
     }
@@ -77,13 +75,17 @@
 
 @implementation BSMutableSetValueForKey
 
+static NSString *const sampleName = @"Lycurgus Mihovil";
+
 //
 // Create stack once
 //
 + (void)setUp
 {
     [super setUp];
-    [[BSCoreDataUtils sharedLocalStore] initialize];
+    
+    BSCoreDataUtils *utils = [BSCoreDataUtils sharedLocalStore];
+    [utils initialize];
 }
 
 //
@@ -107,23 +109,42 @@
     
     XCTAssertNotNil(parent);
     
+    NSManagedObject *child =
+    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
+                                  inManagedObjectContext:utils.moc];
+    
+    XCTAssertNotNil(child);
+    
+    NSError *error;
+    BOOL saved = [utils.moc save:&error];
+    XCTAssert(saved, @"Error: %@", error);
+    
+    // Refault parent so children relationship refaulted.
+    [utils.moc refreshObject:parent mergeChanges:NO];
+    
+    XCTAssert([parent isFault]);
+    XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
+    
     BSManagedObjectKVOCounter *counter =
     [[BSManagedObjectKVOCounter alloc] initWithManagedObject:parent
                                                      keyPath:@"children"];
     
     XCTAssertEqual(0, counter.count);
     
-    NSManagedObject *child =
-    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
-                                  inManagedObjectContext:utils.moc];
-    
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Interesting part
     
+    // KVO #1: "Relationship 'children' fault on managed object"
     NSMutableSet *children = [parent mutableSetValueForKey:@"children"];
+    
+    XCTAssertEqual(1, counter.count); // KVO
+    
+    XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
+    
+    /// KVO #2: "Relationship 'children' on managed object"
     [children addObject:child];
     
-    XCTAssertEqual(1, counter.count, @"KVO should have fired");
+    XCTAssertEqual(2, counter.count); // KVO
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
     XCTAssertNotNil([child valueForKey:@"parent"], @"KVO assisted inverse relationship");
     
@@ -143,30 +164,49 @@
     
     XCTAssertNotNil(parent);
     
+    NSManagedObject *child =
+    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
+                                  inManagedObjectContext:utils.moc];
+    
+    XCTAssertNotNil(child);
+    
+    NSError *error;
+    BOOL saved = [utils.moc save:&error];
+    XCTAssert(saved, @"Error: %@", error);
+    
+    // Refault parent so children relationship refaulted.
+    [utils.moc refreshObject:parent mergeChanges:NO];
+    
+    XCTAssert([parent isFault]);
+    XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
+    
     BSManagedObjectKVOCounter *counter =
     [[BSManagedObjectKVOCounter alloc] initWithManagedObject:parent
                                                      keyPath:@"children"];
     
     XCTAssertEqual(0, counter.count);
     
-    NSManagedObject *child =
-    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
-                                  inManagedObjectContext:utils.moc];
-    
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Interesting part
     
+    // KVO #1: "Relationship 'children' fault on managed object"
     NSMutableSet *children;
     {
         NSSet *_children = [parent primitiveValueForKey:@"children"];
+        XCTAssertEqual(1, counter.count); // KVO
+        
+        XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
         children = [_children mutableCopy];
+        XCTAssertFalse([parent hasFaultForRelationshipNamed:@"children"]);
     }
     
-    [children addObject:child];
+    XCTAssertEqual(1, counter.count);  // No additional KVO
     
+    // No KVO #2
+    [children addObject:child];
     [parent setPrimitiveValue:children forKey:@"children"];
     
-    XCTAssertEqual(0, counter.count, @"KVO shouldn't have fired.");
+    XCTAssertEqual(1, counter.count);  // No additional KVO
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
     XCTAssertNil([child valueForKey:@"parent"], @"Without KVO, no inverse");
     
@@ -186,32 +226,52 @@
     
     XCTAssertNotNil(parent);
     
+    NSManagedObject *child =
+    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
+                                  inManagedObjectContext:utils.moc];
+    
+    XCTAssertNotNil(child);
+    
+    NSError *error;
+    BOOL saved = [utils.moc save:&error];
+    XCTAssert(saved, @"Error: %@", error);
+    
+    // Refault parent so children relationship refaulted.
+    [utils.moc refreshObject:parent mergeChanges:NO];
+    
+    XCTAssert([parent isFault]);
+    XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
+    
     BSManagedObjectKVOCounter *counter =
     [[BSManagedObjectKVOCounter alloc] initWithManagedObject:parent
                                                      keyPath:@"children"];
     
     XCTAssertEqual(0, counter.count);
     
-    NSManagedObject *child =
-    [NSEntityDescription insertNewObjectForEntityForName:@"Child"
-                                  inManagedObjectContext:utils.moc];
-    
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Interesting part
     
+    // KVO #1: "Relationship 'children' fault on managed object"
     NSMutableSet *children;
     {
         NSSet *_children = [parent primitiveValueForKey:@"children"];
+        XCTAssertEqual(1, counter.count); // KVO
+        
+        XCTAssert([parent hasFaultForRelationshipNamed:@"children"]);
         children = [_children mutableCopy];
+        XCTAssertFalse([parent hasFaultForRelationshipNamed:@"children"]);
     }
     
     [children addObject:child];
     
+    XCTAssertEqual(1, counter.count);
+    
+    // KVO #2: "Relationship 'children' on managed object"
     [parent willChangeValueForKey:@"children"];
     [parent setPrimitiveValue:children forKey:@"children"];
     [parent didChangeValueForKey:@"children"];
     
-    XCTAssertEqual(1, counter.count, @"KVO should have fired.");
+    XCTAssertEqual(2, counter.count); // KVO
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
     XCTAssertNotNil([child valueForKey:@"parent"], @"KVO assisted inverse relationship");
     

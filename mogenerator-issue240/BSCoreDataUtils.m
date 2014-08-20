@@ -58,6 +58,9 @@
     NSAssert(storeUrl, @"Failed to find directory");
     storeUrl = [storeUrl URLByAppendingPathComponent:@"MogeneratorIssue240.sqlite"];
     
+    // tabula rasa each run
+    [[NSFileManager defaultManager] removeItemAtPath:[storeUrl path] error:nil];
+    
     NSError *error;
     NSPersistentStore *store = [psc addPersistentStoreWithType:NSSQLiteStoreType
                                                  configuration:nil
