@@ -125,6 +125,7 @@
     
     XCTAssertEqual(1, counter.count, @"KVO should have fired");
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
+    XCTAssertNotNil([child valueForKey:@"parent"], @"KVO assisted inverse relationship");
     
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 }
@@ -167,6 +168,7 @@
     
     XCTAssertEqual(0, counter.count, @"KVO shouldn't have fired.");
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
+    XCTAssertNil([child valueForKey:@"parent"], @"Without KVO, no inverse");
     
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 }
@@ -211,6 +213,7 @@
     
     XCTAssertEqual(1, counter.count, @"KVO should have fired.");
     XCTAssertEqual(1, [[parent valueForKey:@"children"] count]);
+    XCTAssertNotNil([child valueForKey:@"parent"], @"KVO assisted inverse relationship");
     
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 }
